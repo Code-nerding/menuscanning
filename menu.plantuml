@@ -1,0 +1,415 @@
+@startuml Restaurant QR Menu App - System Architecture
+
+!define RECTANGLE class
+!theme plain
+
+title Restaurant QR Code Menu App - System Architecture
+
+' Define color scheme
+!define PRIMARY_COLOR #2196F3
+!define SECONDARY_COLOR #FFC107
+!define SUCCESS_COLOR #4CAF50
+!define ERROR_COLOR #F44336
+!define NEUTRAL_COLOR #9E9E9E
+
+' Mobile App Layer
+package "Flutter Mobile App" as MobileApp {
+    
+    ' UI Layer
+    package "Presentation Layer" {
+        class ScanScreen {
+            + scanQRCode()
+            + validateRestaurantCode()
+        }
+        
+        class MenuScreen {
+            + displayMenu()
+            + filterByDietary()
+            + searchDishes()
+        }
+        
+        class OrderScreen {
+            + addToCart()
+            + customizeDish()
+            + proceedToPayment()
+        }
+        
+        class ProfileScreen {
+            + viewLoyaltyPoints()
+            + managePreferences()
+            + viewOrderHistory()
+        }
+        
+        class ReviewScreen {
+            + submitReview()
+            + viewReviews()
+            + rateExperience()
+        }
+    }
+    
+    ' Business Logic Layer
+    package "State Management (Provider)" {
+        class MenuProvider {
+            + fetchMenu()
+            + applyFilters()
+            + notifyListeners()
+        }
+        
+        class OrderProvider {
+            + addItem()
+            + updateQuantity()
+            + calculateTotal()
+        }
+        
+        class UserProvider {
+            + authenticateUser()
+            + updateProfile()
+            + manageLoyalty()
+        }
+        
+        class ReviewProvider {
+            + fetchReviews()
+            + submitFeedback()
+            + updateRatings()
+        }
+    }
+    
+    ' Service Layer
+    package "Services" {
+        class QRCodeService {
+            + scanCode()
+            + validateRestaurant()
+        }
+        
+        class APIService {
+            + httpClient: Dio
+            + get()
+            + post()
+            + handleErrors()
+        }
+        
+        class PaymentService {
+            + processPayment()
+            + validateCard()
+            + handleGateways()
+        }
+        
+        class NotificationService {
+            + sendPushNotification()
+            + handleFCM()
+        }
+        
+        class StorageService {
+            + secureStorage()
+            + sharedPreferences()
+            + cacheData()
+        }
+        
+        class LocalizationService {
+            + switchLanguage()
+            + formatCurrency()
+            + translateText()
+        }
+    }
+    
+    ' Data Models
+    package "Data Models" {
+        class Restaurant {
+            + id: String
+            + name: String
+            + qrCode: String
+            + address: String
+        }
+        
+        class Menu {
+            + id: String
+            + restaurantId: String
+            + categories: List<Category>
+            + lastUpdated: DateTime
+        }
+        
+        class Dish {
+            + id: String
+            + name: String
+            + description: String
+            + price: double
+            + imageUrl: String
+            + videoUrl: String
+            + allergens: List<String>
+            + dietaryInfo: DietaryInfo
+        }
+        
+        class Order {
+            + id: String
+            + userId: String
+            + restaurantId: String
+            + items: List<OrderItem>
+            + totalAmount: double
+            + status: OrderStatus
+        }
+        
+        class User {
+            + id: String
+            + name: String
+            + email: String
+            + loyaltyPoints: int
+            + preferences: UserPreferences
+        }
+        
+        class Review {
+            + id: String
+            + userId: String
+            + dishId: String
+            + rating: int
+            + comment: String
+            + timestamp: DateTime
+        }
+    }
+}
+
+' Backend Services
+package "Backend Services" as Backend {
+    
+    package "Restaurant Management API" {
+        class RestaurantController {
+            + getRestaurantByQR()
+            + updateRestaurantInfo()
+        }
+        
+        class MenuController {
+            + getMenuByRestaurant()
+            + updateMenuItems()
+            + manageDishAvailability()
+        }
+    }
+    
+    package "Order Management API" {
+        class OrderController {
+            + createOrder()
+            + updateOrderStatus()
+            + getOrderHistory()
+        }
+        
+        class PaymentController {
+            + processPayment()
+            + refundOrder()
+            + validateTransaction()
+        }
+    }
+    
+    package "User Management API" {
+        class UserController {
+            + authenticateUser()
+            + updateProfile()
+            + manageLoyaltyPoints()
+        }
+        
+        class ReviewController {
+            + submitReview()
+            + getReviews()
+            + moderateContent()
+        }
+    }
+    
+    package "Notification Service" {
+        class FCMService {
+            + sendPushNotification()
+            + manageSubscriptions()
+        }
+    }
+}
+
+' Database Layer
+package "Database Layer" as DB {
+    database "Primary Database" {
+        entity "restaurants" as rest_table {
+            * id : UUID <<PK>>
+            --
+            * name : VARCHAR
+            * qr_code : VARCHAR
+            * address : TEXT
+            * created_at : TIMESTAMP
+        }
+        
+        entity "menus" as menu_table {
+            * id : UUID <<PK>>
+            --
+            * restaurant_id : UUID <<FK>>
+            * name : VARCHAR
+            * is_active : BOOLEAN
+            * updated_at : TIMESTAMP
+        }
+        
+        entity "dishes" as dish_table {
+            * id : UUID <<PK>>
+            --
+            * menu_id : UUID <<FK>>
+            * name : VARCHAR
+            * description : TEXT
+            * price : DECIMAL
+            * image_url : VARCHAR
+            * video_url : VARCHAR
+            * allergens : JSON
+            * dietary_info : JSON
+        }
+        
+        entity "users" as user_table {
+            * id : UUID <<PK>>
+            --
+            * email : VARCHAR
+            * name : VARCHAR
+            * loyalty_points : INTEGER
+            * preferences : JSON
+            * created_at : TIMESTAMP
+        }
+        
+        entity "orders" as order_table {
+            * id : UUID <<PK>>
+            --
+            * user_id : UUID <<FK>>
+            * restaurant_id : UUID <<FK>>
+            * total_amount : DECIMAL
+            * status : VARCHAR
+            * created_at : TIMESTAMP
+        }
+        
+        entity "reviews" as review_table {
+            * id : UUID <<PK>>
+            --
+            * user_id : UUID <<FK>>
+            * dish_id : UUID <<FK>>
+            * rating : INTEGER
+            * comment : TEXT
+            * created_at : TIMESTAMP
+        }
+    }
+    
+    database "Cache Database (Redis)" {
+        entity "menu_cache" {
+            key: restaurant_id
+            value: menu_data
+            ttl: 1hour
+        }
+        
+        entity "user_sessions" {
+            key: session_id
+            value: user_data
+            ttl: 24hours
+        }
+    }
+}
+
+' External Services
+package "External Services" as External {
+    
+    cloud "Firebase" {
+        component FCM [
+            Firebase Cloud Messaging
+            --
+            Push Notifications
+        ]
+        
+        component Analytics [
+            Firebase Analytics
+            --
+            User Behavior Tracking
+        ]
+    }
+    
+    cloud "Payment Gateways" {
+        component Stripe [
+            Stripe Payment
+            --
+            Credit Card Processing
+        ]
+        
+        component PayPal [
+            PayPal
+            --
+            Digital Wallet
+        ]
+    }
+    
+    cloud "File Storage" {
+        component S3 [
+            AWS S3
+            --
+            Image & Video Storage
+        ]
+        
+        component CDN [
+            CloudFront CDN
+            --
+            Content Delivery
+        ]
+    }
+}
+
+' Relationships and Data Flow
+ScanScreen --> QRCodeService : scanQR()
+QRCodeService --> RestaurantController : validateQR()
+RestaurantController --> rest_table : query
+
+MenuScreen --> MenuProvider : getMenu()
+MenuProvider --> APIService : fetchMenu()
+APIService --> MenuController : getMenuData()
+MenuController --> menu_table : query
+MenuController --> dish_table : join
+
+OrderScreen --> OrderProvider : placeOrder()
+OrderProvider --> PaymentService : processPayment()
+PaymentService --> Stripe : charge()
+PaymentService --> OrderController : createOrder()
+OrderController --> order_table : insert
+
+ProfileScreen --> UserProvider : getUserData()
+UserProvider --> UserController : fetchProfile()
+UserController --> user_table : query
+
+ReviewScreen --> ReviewProvider : submitReview()
+ReviewProvider --> ReviewController : postReview()
+ReviewController --> review_table : insert
+
+NotificationService --> FCM : sendNotification()
+StorageService --> menu_cache : cache
+StorageService --> user_sessions : store
+
+' Database Relationships
+rest_table ||--o{ menu_table
+menu_table ||--o{ dish_table
+user_table ||--o{ order_table
+user_table ||--o{ review_table
+rest_table ||--o{ order_table
+dish_table ||--o{ review_table
+
+note right of MobileApp
+    **Key Features:**
+    • QR Code Scanning
+    • Real-time Menu Display
+    • In-app Ordering
+    • Payment Integration
+    • Loyalty Program
+    • Multi-language Support
+    • Offline PDF Menus
+    • Push Notifications
+end note
+
+note right of Backend
+    **Architecture:**
+    • RESTful APIs
+    • Microservices
+    • Caching Layer
+    • Event-driven
+    • Scalable & Secure
+end note
+
+note right of DB
+    **Data Strategy:**
+    • ACID Compliance
+    • Query Optimization
+    • Data Caching
+    • Backup & Recovery
+    • Performance Monitoring
+end note
+
+@enduml
